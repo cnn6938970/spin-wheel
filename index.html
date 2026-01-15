@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>0-9 轉盤</title>
+  <title>1-13 轉盤（不重複抽）</title>
   <style>
     :root{
       --ink:#0f172a;
@@ -18,7 +18,7 @@
       --ring: 16px;
       --btn: 110px;
 
-      /* ✅ 用這個變數來抵消數字的旋轉 */
+      /* 用 CSS 變數控制輪盤旋轉（同時讓文字抵消） */
       --wheel-rot: 0deg;
     }
     *{ box-sizing:border-box; }
@@ -81,6 +81,9 @@
       display:flex;
       gap:10px;
       align-items:center;
+      flex-wrap:wrap;
+      justify-content:center;
+      text-align:center;
     }
     .badge{
       font-size: 12px;
@@ -125,41 +128,34 @@
       box-shadow: 0 12px 26px rgba(0,0,0,.12);
     }
 
-    /* ✅ 轉盤（只轉這層） */
+    /* 轉盤 */
     .wheel{
       position:absolute;
       inset:0;
       border-radius:50%;
       background:
         radial-gradient(circle at 50% 50%, #fff 0 38%, transparent 39%),
-        conic-gradient(
-          #fde68a 0 36deg,
-          #a7f3d0 36deg 72deg,
-          #bfdbfe 72deg 108deg,
-          #fbcfe8 108deg 144deg,
-          #ddd6fe 144deg 180deg,
-          #fecaca 180deg 216deg,
-          #bbf7d0 216deg 252deg,
-          #bae6fd 252deg 288deg,
-          #fde68a 288deg 324deg,
-          #e9d5ff 324deg 360deg
+        conic-gradient(from -90deg,
+          /* 13 等分顏色輪流 */
+          #fde68a 0 7.6923%,
+          #a7f3d0 7.6923% 15.3846%,
+          #bfdbfe 15.3846% 23.0769%,
+          #fbcfe8 23.0769% 30.7692%,
+          #ddd6fe 30.7692% 38.4615%,
+          #fecaca 38.4615% 46.1538%,
+          #bbf7d0 46.1538% 53.8461%,
+          #bae6fd 53.8461% 61.5384%,
+          #fde68a 61.5384% 69.2307%,
+          #e9d5ff 69.2307% 76.9230%,
+          #c7d2fe 76.9230% 84.6153%,
+          #fdba74 84.6153% 92.3076%,
+          #99f6e4 92.3076% 100%
         );
       border: var(--ring) solid rgba(15,23,42,.92);
       box-shadow: var(--shadow2);
       transform: rotate(var(--wheel-rot));
       transition: transform 3.8s cubic-bezier(.12,.72,.08,1);
       overflow:hidden;
-    }
-    .wheel::before{
-      content:"";
-      position:absolute;
-      inset:-12px;
-      border-radius:50%;
-      background:
-        radial-gradient(circle, rgba(255,255,255,.95) 0 2px, transparent 3px) 0 0/28px 28px;
-      mask: radial-gradient(circle at 50% 50%, transparent 0 64%, #000 65% 100%);
-      opacity:.55;
-      pointer-events:none;
     }
     .wheel::after{
       content:"";
@@ -172,27 +168,19 @@
       pointer-events:none;
     }
 
-    /* ✅ 數字層在 wheel 裡面，位置跟著轉盤走，但字要保持正 */
-    .nums{
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-      z-index: 10;
-      /* nums 也跟著盤一起轉（因為放在 wheel 裡） */
-    }
+    .nums{ position:absolute; inset:0; pointer-events:none; z-index:10; }
     .num{
       position:absolute; left:50%; top:50%;
       transform-origin: 0 0;
       font-weight: 1000;
-      font-size: 30px;
+      font-size: 26px;
       color: rgba(15,23,42,.94);
-      text-shadow:
-        0 2px 10px rgba(0,0,0,.10),
-        0 1px 0 rgba(255,255,255,.9);
+      text-shadow: 0 2px 10px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.9);
       user-select:none;
     }
+    /* 抽過：淡掉 */
+    .num.used{ opacity: .25; filter: grayscale(70%); }
 
-    /* 中間旋轉按鈕 */
     .spin-btn{
       position:absolute; left:50%; top:50%;
       transform: translate(-50%,-50%);
@@ -206,7 +194,7 @@
       font-size: 18px;
       cursor:pointer;
       z-index: 40;
-      transition: transform .12s ease, filter .12s ease;
+      transition: transform .12s ease;
     }
     .spin-btn:active{ transform: translate(-50%,-50%) scale(.98); }
     .spin-btn[disabled]{ opacity:.65; cursor:not-allowed; }
@@ -224,10 +212,17 @@
       gap: 10px;
       font-weight: 900;
       letter-spacing: .5px;
+      text-align:center;
+      flex-wrap:wrap;
     }
     .result b{ font-size: 30px; color:#0f172a; }
+    .small{
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 900;
+    }
 
-    .controls{ display:flex; justify-content:center; gap: 10px; }
+    .controls{ display:flex; justify-content:center; gap: 10px; flex-wrap:wrap; }
     .btn{
       padding: 10px 18px;
       border-radius: 14px;
@@ -238,8 +233,12 @@
       box-shadow: 0 10px 20px rgba(0,0,0,.07);
     }
     .btn:active{ transform: scale(.99); }
+    .btn.danger{
+      border-color: rgba(239,68,68,.9);
+      color:#b91c1c;
+    }
 
-    /* 右側（可先放你人物去背版本，這裡簡化保留一個區塊） */
+    /* 右側（保留人物去背區） */
     .right{
       width:min(380px, 96vw);
       padding: 18px;
@@ -312,7 +311,7 @@
 
     @media (max-width: 520px){
       :root{ --wheel: 340px; --btn: 98px; }
-      .num{ font-size: 26px; }
+      .num{ font-size: 22px; }
       .avatar-stage{ min-height: 320px; }
     }
   </style>
@@ -320,23 +319,28 @@
 <body>
   <div class="page">
     <div class="card left">
-      <p class="title">0～9 轉盤 <span class="badge">點中間「旋轉」</span></p>
+      <p class="title">
+        1～13 轉盤（不重複抽）
+        <span class="badge">抽完 13 個會停用</span>
+      </p>
 
       <div class="wheel-area">
         <div class="pointer" aria-hidden="true"></div>
 
-        <!-- ✅ nums 放在 wheel 裡，跟著盤一起轉 -->
-        <div id="wheel" class="wheel" aria-label="0到9 轉盤">
+        <div id="wheel" class="wheel" aria-label="1到13 轉盤">
           <div id="nums" class="nums" aria-hidden="true"></div>
         </div>
 
         <button id="spinBtn" class="spin-btn" type="button">旋轉</button>
       </div>
 
-      <div class="result">結果：<b id="resultText">—</b></div>
+      <div class="result">
+        結果：<b id="resultText">—</b>
+        <span class="small" id="remainText">剩餘：13</span>
+      </div>
 
       <div class="controls">
-        <button id="resetBtn" class="btn" type="button">重置</button>
+        <button id="resetBtn" class="btn danger" type="button">重置</button>
       </div>
     </div>
 
@@ -362,20 +366,21 @@
 
   <script>
     // -----------------------
-    // 音效（WebAudio，不用外部檔）
+    // 參數：1~13
+    // -----------------------
+    const START = 1;
+    const END = 13;
+    const N = END - START + 1; // 13
+    const step = 360 / N;
+
+    // -----------------------
+    // 音效（抽到 13 當中獎、抽到 1 當失落；你要改也很容易）
     // -----------------------
     let audioCtx = null;
-
     function ensureAudio(){
-      if(!audioCtx){
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if(audioCtx.state === "suspended"){
-        // iOS/Chrome 可能需要 resume
-        audioCtx.resume().catch(()=>{});
-      }
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
     }
-
     function beep({freq=440, type="sine", duration=0.12, gain=0.12, when=0}){
       const t0 = audioCtx.currentTime + when;
       const osc = audioCtx.createOscillator();
@@ -385,57 +390,69 @@
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-
-      osc.connect(g);
-      g.connect(audioCtx.destination);
-      osc.start(t0);
-      osc.stop(t0 + duration + 0.02);
+      osc.connect(g); g.connect(audioCtx.destination);
+      osc.start(t0); osc.stop(t0 + duration + 0.02);
     }
-
     function playWin(){
-      // 可愛中獎：上行小旋律
       ensureAudio();
-      const notes = [784, 988, 1175, 1568]; // G5 B5 D6 G6-ish
-      notes.forEach((f, i) => beep({freq:f, type:"triangle", duration:0.10, gain:0.14, when:i*0.11}));
-      // 甜甜收尾
-      beep({freq:1960, type:"sine", duration:0.14, gain:0.10, when:0.48});
+      [784, 988, 1175, 1568].forEach((f,i)=>beep({freq:f,type:"triangle",duration:0.10,gain:0.14,when:i*0.11}));
+      beep({freq:1960,type:"sine",duration:0.14,gain:0.10,when:0.48});
     }
-
     function playSad(){
-      // 失落：下滑兩聲
       ensureAudio();
-      beep({freq:330, type:"sine", duration:0.18, gain:0.12, when:0});
-      beep({freq:220, type:"sine", duration:0.22, gain:0.12, when:0.20});
-      // 加一點低沉
-      beep({freq:110, type:"triangle", duration:0.18, gain:0.08, when:0.42});
+      beep({freq:330,type:"sine",duration:0.18,gain:0.12,when:0});
+      beep({freq:220,type:"sine",duration:0.22,gain:0.12,when:0.20});
+      beep({freq:110,type:"triangle",duration:0.18,gain:0.08,when:0.42});
     }
 
     // -----------------------
-    // 轉盤（0-9）+ 修正：數字不再歪著跟轉
+    // DOM
     // -----------------------
     const wheel = document.getElementById('wheel');
     const nums = document.getElementById('nums');
     const spinBtn = document.getElementById('spinBtn');
     const resetBtn = document.getElementById('resetBtn');
     const resultText = document.getElementById('resultText');
+    const remainText = document.getElementById('remainText');
 
-    const N = 10;
-    const step = 360 / N;
+    // -----------------------
+    // 不重複抽：用 pool 管理
+    // -----------------------
+    let pool = [];
+    function resetPool(){
+      pool = [];
+      for(let v=START; v<=END; v++) pool.push(v);
+      remainText.textContent = `剩餘：${pool.length}`;
+      resultText.textContent = "—";
+      // UI：數字全部恢復
+      document.querySelectorAll('.num').forEach(el => el.classList.remove('used'));
+      // 轉盤回正
+      wheel.style.transition = "none";
+      setWheelDeg(0);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
+      }));
+      spinBtn.disabled = false;
+    }
 
-    // ✅ 建數字：最後一段 rotate() 把「輪盤旋轉量」也抵消掉，字就永遠正
+    // -----------------------
+    // 建數字（位置跟盤轉，字保持正）
+    // -----------------------
     function buildNumbers(){
       nums.innerHTML = "";
       const size = wheel.clientWidth;
-      const r = (size / 2) - 54;
+      const r = (size / 2) - 56;
 
       for(let i=0;i<N;i++){
+        const value = START + i;
         const el = document.createElement('div');
         el.className = 'num';
-        el.textContent = String(i);
+        el.textContent = String(value);
+        el.dataset.value = String(value);
 
         const ang = i * step + step / 2;
 
-        // 重点：最後 rotate(calc(-ang - var(--wheel-rot))) 抵消盤轉
+        // 最後一段 rotate(calc(-ang - var(--wheel-rot))) 抵消盤轉
         el.style.transform = `
           translate(-50%, -50%)
           rotate(${ang}deg)
@@ -446,86 +463,89 @@
       }
     }
 
+    // -----------------------
+    // 旋轉控制
+    // -----------------------
     let currentDeg = 0;
     let spinning = false;
 
     function setWheelDeg(deg){
       currentDeg = deg;
-      // ✅ 用 CSS 變數更新轉盤角度
       wheel.style.setProperty('--wheel-rot', `${currentDeg}deg`);
     }
-
     function norm360(deg){
       return ((deg % 360) + 360) % 360;
     }
-
-    // 指針在最上方，算停在哪一格
     function getIndexFromDeg(deg){
       const n = norm360(deg);
       const atTop = (360 - n) % 360;
-      return Math.floor(atTop / step);
+      return Math.floor(atTop / step); // 0..N-1
+    }
+
+    function pickFromPool(){
+      // 隨機抽 pool 裡的一個，並移除
+      const idx = Math.floor(Math.random() * pool.length);
+      const val = pool[idx];
+      pool.splice(idx, 1);
+      remainText.textContent = `剩餘：${pool.length}`;
+      return val;
+    }
+
+    function markUsed(value){
+      const el = document.querySelector(`.num[data-value="${value}"]`);
+      if(el) el.classList.add('used');
     }
 
     function spin(){
       if(spinning) return;
+
+      if(pool.length === 0){
+        spinBtn.disabled = true;
+        resultText.textContent = "已抽完";
+        return;
+      }
+
       spinning = true;
       spinBtn.disabled = true;
       resultText.textContent = "…";
-
-      // ✅ 讓音效能播（瀏覽器要求必須有使用者手勢）
       ensureAudio();
 
-      const target = Math.floor(Math.random() * N);
-      const extraTurns = (4 + Math.floor(Math.random() * 4)) * 360;
+      // ✅ 抽一個「沒抽過的」
+      const picked = pickFromPool();
 
-      // 讓指針停在 target 格中心
-      const targetCenter = target * step + step / 2;
+      // picked 對應到 segment index（0..N-1）
+      const targetIndex = picked - START;
+
+      // 讓指針停在該格中心
+      const extraTurns = (4 + Math.floor(Math.random() * 4)) * 360;
+      const targetCenter = targetIndex * step + step / 2;
       const neededNorm = (360 - targetCenter) % 360;
 
       const curNorm = norm360(currentDeg);
       const deltaToNeeded = (neededNorm - curNorm + 360) % 360;
 
-      const newDeg = currentDeg + extraTurns + deltaToNeeded;
+      setWheelDeg(currentDeg + extraTurns + deltaToNeeded);
 
-      // 更新角度（會觸發 wheel transition）
-      setWheelDeg(newDeg);
-
-      // 停下後顯示結果 + 播音效
       setTimeout(() => {
-        const idx = getIndexFromDeg(currentDeg);
-        resultText.textContent = String(idx);
+        // 顯示結果（直接用 picked，避免浮點/邊界誤差）
+        resultText.textContent = String(picked);
+        markUsed(picked);
 
-        if(idx === 9) playWin();
-        if(idx === 0) playSad();
+        // 你要音效的話：這裡示範「抽到 13 當中獎、抽到 1 當失落」
+        // 如果你要改成別的號碼，把 13/1 換掉即可。
+        if(picked === 13) playWin();
+        if(picked === 1) playSad();
 
         spinning = false;
-        spinBtn.disabled = false;
+
+        // pool 還有就可再抽，沒了就停用
+        spinBtn.disabled = (pool.length === 0);
+        if(pool.length === 0){
+          // 抽完提示
+          remainText.textContent = "剩餘：0（已抽完）";
+        }
       }, 3900);
     }
-
-    function reset(){
-      spinning = false;
-      spinBtn.disabled = false;
-      resultText.textContent = "—";
-
-      wheel.style.transition = "none";
-      setWheelDeg(0);
-
-      // 重新套回 transition
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
-        });
-      });
-    }
-
-    window.addEventListener('load', () => {
-      buildNumbers();
-      setWheelDeg(0);
-    });
-    window.addEventListener('resize', buildNumbers);
-    spinBtn.addEventListener('click', spin);
-    resetBtn.addEventListener('click', reset);
 
     // -----------------------
     // 右側人物去背（黃色背景 -> 透明）
@@ -574,7 +594,7 @@
       const tolerance = Number(tolEl.value);
       const softness = Number(softEl.value);
 
-      const H_MIN = 35, H_MAX = 75; // 黃色範圍
+      const H_MIN = 35, H_MAX = 75;
       const center = 55;
 
       for(let i=0; i<data.length; i+=4){
@@ -590,7 +610,6 @@
           data[i+3] = alpha;
         }
       }
-
       ctx.putImageData(imageData, 0, 0);
     }
 
@@ -610,7 +629,19 @@
       ctx.fillText("請把人物照片存成 person.png", 18, 82);
       ctx.fillText("並放在 index.html 同一個資料夾", 18, 104);
     });
+
+    // -----------------------
+    // Init
+    // -----------------------
+    window.addEventListener('load', () => {
+      buildNumbers();
+      setWheelDeg(0);
+      resetPool();
+    });
+    window.addEventListener('resize', buildNumbers);
+
+    spinBtn.addEventListener('click', spin);
+    resetBtn.addEventListener('click', resetPool);
   </script>
 </body>
 </html>
-
