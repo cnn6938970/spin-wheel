@@ -18,7 +18,7 @@
       --ring: 16px;
       --btn: 110px;
 
-      /* 用 CSS 變數控制輪盤旋轉（同時讓文字抵消） */
+      /* ✅ 用 CSS 變數控制輪盤旋轉（同時讓文字抵消） */
       --wheel-rot: 0deg;
     }
     *{ box-sizing:border-box; }
@@ -169,8 +169,12 @@
     }
 
     .nums{ position:absolute; inset:0; pointer-events:none; z-index:10; }
+
+    /* ✅ 外層 num 只負責定位，內層 span 才負責抵消旋轉（避免位移） */
     .num{
-      position:absolute; left:50%; top:50%;
+      position:absolute;
+      left:50%;
+      top:50%;
       transform-origin: 0 0;
       font-weight: 1000;
       font-size: 26px;
@@ -178,8 +182,11 @@
       text-shadow: 0 2px 10px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.9);
       user-select:none;
     }
-    /* 抽過：淡掉 */
-    .num.used{ opacity: .25; filter: grayscale(70%); }
+    .num span{
+      display:block;
+      transform-origin: center;
+    }
+    .num.used{ opacity:.25; filter: grayscale(70%); }
 
     .spin-btn{
       position:absolute; left:50%; top:50%;
@@ -238,7 +245,7 @@
       color:#b91c1c;
     }
 
-    /* 右側（保留人物去背區） */
+    /* 右側（人物去背） */
     .right{
       width:min(380px, 96vw);
       padding: 18px;
@@ -374,7 +381,7 @@
     const step = 360 / N;
 
     // -----------------------
-    // 音效（抽到 13 當中獎、抽到 1 當失落；你要改也很容易）
+    // 音效（示範：抽到 13 中獎、抽到 1 失落）
     // -----------------------
     let audioCtx = null;
     function ensureAudio(){
@@ -416,7 +423,7 @@
     const remainText = document.getElementById('remainText');
 
     // -----------------------
-    // 不重複抽：用 pool 管理
+    // 不重複抽：pool
     // -----------------------
     let pool = [];
     function resetPool(){
@@ -424,19 +431,24 @@
       for(let v=START; v<=END; v++) pool.push(v);
       remainText.textContent = `剩餘：${pool.length}`;
       resultText.textContent = "—";
-      // UI：數字全部恢復
+
+      // 數字恢復
       document.querySelectorAll('.num').forEach(el => el.classList.remove('used'));
+
       // 轉盤回正
       wheel.style.transition = "none";
       setWheelDeg(0);
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
         wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
       }));
+
       spinBtn.disabled = false;
     }
 
     // -----------------------
-    // 建數字（位置跟盤轉，字保持正）
+    // ✅ 修正位移：定位與抵消旋轉拆兩層
+    // 外層 .num：定位
+    // 內層 span：抵消旋轉保持正
     // -----------------------
     function buildNumbers(){
       nums.innerHTML = "";
@@ -445,20 +457,27 @@
 
       for(let i=0;i<N;i++){
         const value = START + i;
+
         const el = document.createElement('div');
         el.className = 'num';
-        el.textContent = String(value);
         el.dataset.value = String(value);
+
+        const text = document.createElement('span');
+        text.textContent = String(value);
+        el.appendChild(text);
 
         const ang = i * step + step / 2;
 
-        // 最後一段 rotate(calc(-ang - var(--wheel-rot))) 抵消盤轉
+        // 外層：只負責定位，不會飄
         el.style.transform = `
           translate(-50%, -50%)
           rotate(${ang}deg)
           translate(0, -${r}px)
-          rotate(calc(${-ang}deg - var(--wheel-rot)))
         `;
+
+        // 內層：抵消「該格角度」+「輪盤角度」
+        text.style.transform = `rotate(calc(${-ang}deg - var(--wheel-rot)))`;
+
         nums.appendChild(el);
       }
     }
@@ -476,14 +495,8 @@
     function norm360(deg){
       return ((deg % 360) + 360) % 360;
     }
-    function getIndexFromDeg(deg){
-      const n = norm360(deg);
-      const atTop = (360 - n) % 360;
-      return Math.floor(atTop / step); // 0..N-1
-    }
 
     function pickFromPool(){
-      // 隨機抽 pool 裡的一個，並移除
       const idx = Math.floor(Math.random() * pool.length);
       const val = pool[idx];
       pool.splice(idx, 1);
@@ -510,14 +523,13 @@
       resultText.textContent = "…";
       ensureAudio();
 
-      // ✅ 抽一個「沒抽過的」
+      // 抽一個沒抽過的
       const picked = pickFromPool();
-
-      // picked 對應到 segment index（0..N-1）
       const targetIndex = picked - START;
 
-      // 讓指針停在該格中心
       const extraTurns = (4 + Math.floor(Math.random() * 4)) * 360;
+
+      // 停在該格中心（指針在最上方）
       const targetCenter = targetIndex * step + step / 2;
       const neededNorm = (360 - targetCenter) % 360;
 
@@ -527,23 +539,16 @@
       setWheelDeg(currentDeg + extraTurns + deltaToNeeded);
 
       setTimeout(() => {
-        // 顯示結果（直接用 picked，避免浮點/邊界誤差）
         resultText.textContent = String(picked);
         markUsed(picked);
 
-        // 你要音效的話：這裡示範「抽到 13 當中獎、抽到 1 當失落」
-        // 如果你要改成別的號碼，把 13/1 換掉即可。
+        // 音效示範：13中獎、1失落
         if(picked === 13) playWin();
         if(picked === 1) playSad();
 
         spinning = false;
-
-        // pool 還有就可再抽，沒了就停用
         spinBtn.disabled = (pool.length === 0);
-        if(pool.length === 0){
-          // 抽完提示
-          remainText.textContent = "剩餘：0（已抽完）";
-        }
+        if(pool.length === 0) remainText.textContent = "剩餘：0（已抽完）";
       }, 3900);
     }
 
