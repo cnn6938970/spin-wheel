@@ -4,36 +4,44 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>1-13 轉盤（不重複抽）</title>
+
   <style>
+    /* =========================
+       插畫潮風 UI（類似參考圖）
+       ========================= */
     :root{
-      --ink:#0f172a;
-      --muted:#475569;
-      --pink:#ff4d8d;
-      --card: rgba(255,255,255,.78);
-      --stroke: rgba(15,23,42,.10);
-      --shadow: 0 18px 55px rgba(15,23,42,.12);
-      --shadow2: 0 10px 26px rgba(15,23,42,.10);
+      --ink:#0B1020;                /* 深墨 */
+      --bg:#070A12;                 /* 黑底舞台 */
+      --stroke:#0A0C12;             /* 粗描邊 */
+      --paper:#ffffff;              /* 卡片底 */
+      --pink:#ff4db3;
+
+      --shadow-sticker: 0 18px 0 rgba(10,12,18,.22), 0 34px 60px rgba(0,0,0,.40);
+      --shadow-soft: 0 14px 0 rgba(10,12,18,.18), 0 26px 42px rgba(0,0,0,.25);
 
       --wheel: 420px;
-      --ring: 16px;
+      --ring: 18px;
       --btn: 110px;
 
       --wheel-rot: 0deg;
     }
+
     *{ box-sizing:border-box; }
+    html,body{ height:100%; }
     body{
       margin:0;
       min-height:100vh;
       font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
-      color:var(--ink);
       background:
-        radial-gradient(1100px 700px at 18% 22%, #ffe6f1 0%, transparent 55%),
-        radial-gradient(900px 620px at 85% 30%, #e8f3ff 0%, transparent 55%),
-        radial-gradient(900px 700px at 50% 90%, #eafff2 0%, transparent 58%),
-        #f7f8ff;
+        radial-gradient(900px 520px at 18% 18%, rgba(255,60,160,.35) 0%, transparent 60%),
+        radial-gradient(900px 520px at 82% 22%, rgba(0,190,255,.30) 0%, transparent 58%),
+        radial-gradient(900px 620px at 50% 92%, rgba(0,255,160,.18) 0%, transparent 60%),
+        radial-gradient(circle at 12px 12px, rgba(255,255,255,.08) 2px, transparent 2.2px) 0 0/28px 28px,
+        var(--bg);
       display:grid;
       place-items:center;
       padding: 22px;
+      color:#fff;
     }
 
     .page{
@@ -46,10 +54,9 @@
     }
 
     .card{
-      background: var(--card);
-      border: 1px solid var(--stroke);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+      background: var(--paper);
+      border: 4px solid rgba(10,12,18,.95);
+      box-shadow: var(--shadow-sticker);
       border-radius: 24px;
       position:relative;
       overflow:hidden;
@@ -57,9 +64,9 @@
     .card::before{
       content:"";
       position:absolute;
-      inset: 12px;
+      inset: 10px;
       border-radius: 18px;
-      border: 2px dashed rgba(255,77,141,.35);
+      box-shadow: inset 0 0 0 2px rgba(10,12,18,.10);
       pointer-events:none;
     }
 
@@ -71,12 +78,13 @@
       gap: 14px;
       justify-items:center;
     }
+
     .title{
       margin: 0;
       font-weight: 1000;
-      letter-spacing:.5px;
+      letter-spacing: .8px;
       font-size: 18px;
-      color: var(--muted);
+      color: var(--ink);
       display:flex;
       gap:10px;
       align-items:center;
@@ -88,10 +96,11 @@
       font-size: 12px;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(255,77,141,.12);
-      border: 1px solid rgba(255,77,141,.25);
-      color: #c0265c;
-      font-weight: 900;
+      background: var(--pink);
+      color: var(--ink);
+      border: 3px solid rgba(10,12,18,.95);
+      box-shadow: 0 10px 0 rgba(10,12,18,.18);
+      font-weight: 1000;
     }
 
     .wheel-area{
@@ -113,7 +122,7 @@
       border-right: 14px solid transparent;
       border-top: 26px solid var(--pink);
       z-index: 30;
-      filter: drop-shadow(0 10px 10px rgba(0,0,0,.18));
+      filter: drop-shadow(0 12px 0 rgba(10,12,18,.18)) drop-shadow(0 18px 20px rgba(0,0,0,.30));
     }
     .pointer::after{
       content:"";
@@ -123,11 +132,11 @@
       transform: translateX(-50%);
       width:18px;height:18px;border-radius:999px;
       background:#fff;
-      border: 4px solid rgba(15,23,42,.90);
+      border: 5px solid rgba(10,12,18,.95);
       box-shadow: 0 12px 26px rgba(0,0,0,.12);
     }
 
-    /* 轉盤本體 */
+    /* 轉盤 */
     .wheel{
       position:absolute;
       inset:0;
@@ -135,22 +144,22 @@
       background:
         radial-gradient(circle at 50% 50%, #fff 0 38%, transparent 39%),
         conic-gradient(from -90deg,
-          #fde68a 0 7.6923%,
-          #a7f3d0 7.6923% 15.3846%,
-          #bfdbfe 15.3846% 23.0769%,
-          #fbcfe8 23.0769% 30.7692%,
-          #ddd6fe 30.7692% 38.4615%,
-          #fecaca 38.4615% 46.1538%,
-          #bbf7d0 46.1538% 53.8461%,
-          #bae6fd 53.8461% 61.5384%,
-          #fde68a 61.5384% 69.2307%,
-          #e9d5ff 69.2307% 76.9230%,
-          #c7d2fe 76.9230% 84.6153%,
-          #fdba74 84.6153% 92.3076%,
-          #99f6e4 92.3076% 100%
+          #FFD84D 0 7.6923%,
+          #00E1FF 7.6923% 15.3846%,
+          #7C5CFF 15.3846% 23.0769%,
+          #FF5DB1 23.0769% 30.7692%,
+          #45FFB1 30.7692% 38.4615%,
+          #FF6A4D 38.4615% 46.1538%,
+          #00C2FF 46.1538% 53.8461%,
+          #B9FF4D 53.8461% 61.5384%,
+          #FFD84D 61.5384% 69.2307%,
+          #7C5CFF 69.2307% 76.9230%,
+          #FF5DB1 76.9230% 84.6153%,
+          #45FFB1 84.6153% 92.3076%,
+          #00E1FF 92.3076% 100%
         );
-      border: var(--ring) solid rgba(15,23,42,.92);
-      box-shadow: var(--shadow2);
+      border: var(--ring) solid rgba(10,12,18,.95);
+      box-shadow: var(--shadow-soft);
       transform: rotate(var(--wheel-rot));
       transition: transform 3.8s cubic-bezier(.12,.72,.08,1);
       overflow:hidden;
@@ -161,92 +170,105 @@
       inset:0;
       border-radius:50%;
       box-shadow:
-        inset 0 0 0 10px rgba(255,255,255,.28),
-        inset 0 0 42px rgba(0,0,0,.08);
+        inset 0 0 0 10px rgba(255,255,255,.25),
+        inset 0 0 0 2px rgba(0,0,0,.08),
+        inset 0 0 50px rgba(0,0,0,.10);
       pointer-events:none;
     }
 
-    /* 數字層（會跟著盤轉；文字用 rotate(-wheel-rot) 抵消） */
     .nums{
       position:absolute;
       inset:0;
       pointer-events:none;
       z-index:10;
     }
+
+    /* 數字：用 rotate(-wheel-rot) 保持正 */
     .num{
       position:absolute;
-      width: 50px;
-      height: 50px;
+      width: 52px;
+      height: 52px;
       display:grid;
       place-items:center;
       transform: translate(-50%, -50%) rotate(calc(-1 * var(--wheel-rot)));
       transform-origin: center;
       font-weight: 1000;
       font-size: 26px;
-      color: rgba(15,23,42,.94);
-      text-shadow: 0 2px 10px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.9);
+      color: var(--ink);
+      text-shadow:
+        0 2px 0 rgba(255,255,255,.75),
+        0 6px 18px rgba(0,0,0,.12);
       user-select:none;
     }
-    .num.used{ opacity:.25; filter: grayscale(70%); }
+    .num.used{ opacity:.18; filter: grayscale(100%); }
 
+    /* 中間旋轉按鈕：貼紙感 */
     .spin-btn{
       position:absolute; left:50%; top:50%;
       transform: translate(-50%,-50%);
       width: var(--btn); height: var(--btn);
       border-radius: 999px;
-      border: 10px solid rgba(15,23,42,.92);
-      background: radial-gradient(circle at 30% 25%, #ffffff 0%, #ffe1ef 40%, #ffd2e6 70%, #ffc3dc 100%);
-      box-shadow: 0 16px 34px rgba(255,77,141,.18), 0 14px 34px rgba(0,0,0,.12);
+      border: 10px solid rgba(10,12,18,.95);
+      background: radial-gradient(circle at 30% 25%, #ffffff 0%, #ffe1f2 38%, #ffb7df 80%, #ff8fcc 100%);
+      box-shadow: 0 14px 0 rgba(10,12,18,.18), 0 28px 50px rgba(0,0,0,.25);
       display:grid; place-items:center;
       font-weight: 1000;
       font-size: 18px;
       cursor:pointer;
       z-index: 40;
-      transition: transform .12s ease;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      color: var(--ink);
     }
-    .spin-btn:active{ transform: translate(-50%,-50%) scale(.98); }
-    .spin-btn[disabled]{ opacity:.65; cursor:not-allowed; }
+    .spin-btn:active{
+      transform: translate(-50%,-50%) translateY(2px) scale(.98);
+      box-shadow: 0 10px 0 rgba(10,12,18,.18), 0 22px 40px rgba(0,0,0,.22);
+    }
+    .spin-btn[disabled]{ opacity:.60; cursor:not-allowed; }
 
     .result{
       width: min(520px, 92vw);
-      background: rgba(255,255,255,.88);
-      border: 1px solid rgba(15,23,42,.10);
+      background:#fff;
+      border: 3px solid rgba(10,12,18,.95);
       border-radius: 18px;
       padding: 14px 16px;
-      box-shadow: 0 12px 26px rgba(0,0,0,.08);
+      box-shadow: 0 12px 0 rgba(10,12,18,.16), 0 22px 34px rgba(0,0,0,.18);
       display:flex;
       align-items:center;
       justify-content:center;
       gap: 10px;
-      font-weight: 900;
+      font-weight: 1000;
       letter-spacing: .5px;
       text-align:center;
       flex-wrap:wrap;
+      color: var(--ink);
     }
-    .result b{ font-size: 30px; color:#0f172a; }
+    .result b{ font-size: 30px; }
+
     .small{
       font-size: 12px;
-      color: var(--muted);
-      font-weight: 900;
+      color: rgba(11,16,32,.75);
+      font-weight: 1000;
     }
 
     .controls{ display:flex; justify-content:center; gap: 10px; flex-wrap:wrap; }
     .btn{
       padding: 10px 18px;
       border-radius: 14px;
-      border: 2px solid rgba(15,23,42,.92);
+      border: 3px solid rgba(10,12,18,.95);
       background: #fff;
       font-weight: 1000;
       cursor:pointer;
-      box-shadow: 0 10px 20px rgba(0,0,0,.07);
+      box-shadow: 0 10px 0 rgba(10,12,18,.16), 0 18px 26px rgba(0,0,0,.14);
+      color: var(--ink);
+      transition: transform .12s ease, box-shadow .12s ease;
     }
-    .btn:active{ transform: scale(.99); }
-    .btn.danger{
-      border-color: rgba(239,68,68,.9);
-      color:#b91c1c;
+    .btn:active{
+      transform: translateY(2px) scale(.99);
+      box-shadow: 0 7px 0 rgba(10,12,18,.16), 0 14px 20px rgba(0,0,0,.12);
     }
+    .btn.danger{ border-color: rgba(239,68,68,.92); }
 
-    /* 右側：貓貓 */
+    /* 右側：阿巴貓 */
     .right{
       width:min(380px, 96vw);
       padding: 18px;
@@ -258,30 +280,33 @@
     .side-title{
       margin:0;
       font-weight:1000;
-      color: var(--muted);
+      color: var(--ink);
       display:flex;
       align-items:center;
       gap:10px;
+      letter-spacing:.8px;
     }
     .chip{
       font-size:12px;
       padding:6px 10px;
       border-radius:999px;
-      background: rgba(59,130,246,.10);
-      border: 1px solid rgba(59,130,246,.20);
-      color:#1d4ed8;
-      font-weight:900;
+      background: var(--pink);
+      color: var(--ink);
+      border: 3px solid rgba(10,12,18,.95);
+      box-shadow: 0 10px 0 rgba(10,12,18,.18);
+      font-weight:1000;
     }
     .avatar-stage{
       width: 100%;
       min-height: 360px;
       border-radius: 24px;
       background:
-        radial-gradient(420px 280px at 30% 22%, rgba(255,77,141,.22), transparent 60%),
-        radial-gradient(520px 320px at 70% 35%, rgba(59,130,246,.18), transparent 58%),
-        rgba(255,255,255,.80);
-      border: 1px solid rgba(15,23,42,.10);
-      box-shadow: 0 14px 30px rgba(0,0,0,.08);
+        radial-gradient(520px 320px at 30% 22%, rgba(255,60,160,.30), transparent 60%),
+        radial-gradient(520px 320px at 70% 35%, rgba(0,190,255,.28), transparent 58%),
+        radial-gradient(circle at 10px 10px, rgba(255,255,255,.08) 2px, transparent 2.2px) 0 0/26px 26px,
+        #0B0F1C;
+      border: 3px solid rgba(10,12,18,.95);
+      box-shadow: var(--shadow-soft);
       display:grid;
       place-items:center;
       padding: 20px;
@@ -290,7 +315,9 @@
       max-width: 92%;
       max-height: 320px;
       animation: float 3s ease-in-out infinite;
-      filter: drop-shadow(0 18px 20px rgba(0,0,0,.15));
+      filter:
+        drop-shadow(0 14px 0 rgba(10,12,18,.18))
+        drop-shadow(0 22px 26px rgba(0,0,0,.30));
       border-radius: 18px;
     }
     @keyframes float{
@@ -307,6 +334,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="page">
     <div class="card left">
@@ -336,58 +364,23 @@
     </div>
 
     <div class="card right">
-      <p class="side-title">貓貓 <span class="chip">動圖</span></p>
+      <p class="side-title">阿巴貓 <span class="chip">動圖</span></p>
       <div class="avatar-stage">
-        <!-- ✅ 請把 aba-cat.gif 上傳到 repo 根目錄 -->
-        <img src="aba-cat.gif" class="aba-cat" alt="貓貓貓貓">
+        <!-- 請把 aba-cat.gif 放在 repo 根目錄（和 index.html 同一層） -->
+        <img src="aba-cat.gif" class="aba-cat" alt="阿巴貓動圖">
       </div>
     </div>
   </div>
 
   <script>
-    // -----------------------
-    // 參數：1~13
-    // -----------------------
+    /* =========================
+       核心規則：1~13 不重複抽
+       ========================= */
     const START = 1;
     const END = 13;
     const N = END - START + 1;
     const step = 360 / N;
 
-    // -----------------------
-    // 音效（示範：13 中獎、1 失落）
-    // -----------------------
-    let audioCtx = null;
-    function ensureAudio(){
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if(audioCtx.state === "suspended") audioCtx.resume().catch(()=>{});
-    }
-    function beep({freq=440, type="sine", duration=0.12, gain=0.12, when=0}){
-      const t0 = audioCtx.currentTime + when;
-      const osc = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, t0);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-      osc.connect(g); g.connect(audioCtx.destination);
-      osc.start(t0); osc.stop(t0 + duration + 0.02);
-    }
-    function playWin(){
-      ensureAudio();
-      [784, 988, 1175, 1568].forEach((f,i)=>beep({freq:f,type:"triangle",duration:0.10,gain:0.14,when:i*0.11}));
-      beep({freq:1960,type:"sine",duration:0.14,gain:0.10,when:0.48});
-    }
-    function playSad(){
-      ensureAudio();
-      beep({freq:330,type:"sine",duration:0.18,gain:0.12,when:0});
-      beep({freq:220,type:"sine",duration:0.22,gain:0.12,when:0.20});
-      beep({freq:110,type:"triangle",duration:0.18,gain:0.08,when:0.42});
-    }
-
-    // -----------------------
-    // DOM
-    // -----------------------
     const wheel = document.getElementById('wheel');
     const nums = document.getElementById('nums');
     const spinBtn = document.getElementById('spinBtn');
@@ -395,38 +388,32 @@
     const resultText = document.getElementById('resultText');
     const remainText = document.getElementById('remainText');
 
-    // -----------------------
-    // 不重複抽：pool
-    // -----------------------
     let pool = [];
-    function resetPool(){
-      pool = [];
-      for(let v=START; v<=END; v++) pool.push(v);
-      remainText.textContent = `剩餘：${pool.length}`;
-      resultText.textContent = "—";
-      document.querySelectorAll('.num').forEach(el => el.classList.remove('used'));
+    let currentDeg = 0;
+    let spinning = false;
 
-      wheel.style.transition = "none";
-      setWheelDeg(0);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
-      }));
-      spinBtn.disabled = false;
+    function setWheelDeg(deg){
+      currentDeg = deg;
+      wheel.style.setProperty('--wheel-rot', `${currentDeg}deg`);
+    }
+    function norm360(deg){
+      return ((deg % 360) + 360) % 360;
     }
 
-    // -----------------------
-    // ✅ 數字不位移：sin/cos 座標定位
-    // -----------------------
+    /* ✅ 數字不位移：用 sin/cos 算座標
+       ✅ 手機更靠外：size 小時 pad 更小（r 更大） */
     function buildNumbers(){
       nums.innerHTML = "";
-
       const size = wheel.clientWidth;
-      const r = (size / 2) - 56; // 數字距離中心半徑（可微調）
+
+      // pad 越小 -> r 越大 -> 越靠外
+      const pad = (size < 380) ? 42 : 54;
+      const r = (size / 2) - pad;
 
       for(let i=0;i<N;i++){
         const value = START + i;
 
-        // 轉盤背景從 -90deg 開始，指針在上方
+        // conic-gradient from -90deg，格子中心角度
         const angDeg = -90 + (i + 0.5) * step;
         const angRad = angDeg * Math.PI / 180;
 
@@ -445,18 +432,23 @@
       }
     }
 
-    // -----------------------
-    // 旋轉控制
-    // -----------------------
-    let currentDeg = 0;
-    let spinning = false;
+    function resetPool(){
+      pool = [];
+      for(let v=START; v<=END; v++) pool.push(v);
 
-    function setWheelDeg(deg){
-      currentDeg = deg;
-      wheel.style.setProperty('--wheel-rot', `${currentDeg}deg`);
-    }
-    function norm360(deg){
-      return ((deg % 360) + 360) % 360;
+      remainText.textContent = `剩餘：${pool.length}`;
+      resultText.textContent = "—";
+      document.querySelectorAll('.num').forEach(el => el.classList.remove('used'));
+
+      // 回正且不動畫抖一下
+      wheel.style.transition = "none";
+      setWheelDeg(0);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
+      }));
+
+      spinBtn.disabled = false;
+      spinning = false;
     }
 
     function pickFromPool(){
@@ -484,14 +476,14 @@
       spinning = true;
       spinBtn.disabled = true;
       resultText.textContent = "…";
-      ensureAudio();
 
       const picked = pickFromPool();
       const targetIndex = picked - START;
 
+      // 多轉幾圈比較爽
       const extraTurns = (4 + Math.floor(Math.random() * 4)) * 360;
 
-      // 指針在最上方，停在該格中心
+      // 指針在上方，停在該格中心
       const targetCenter = targetIndex * step + step / 2;
       const neededNorm = (360 - targetCenter) % 360;
 
@@ -504,19 +496,12 @@
         resultText.textContent = String(picked);
         markUsed(picked);
 
-        // 音效示範：13 中獎、1 失落（你要改也可以）
-        if(picked === 13) playWin();
-        if(picked === 1) playSad();
-
         spinning = false;
         spinBtn.disabled = (pool.length === 0);
         if(pool.length === 0) remainText.textContent = "剩餘：0（已抽完）";
       }, 3900);
     }
 
-    // -----------------------
-    // Init
-    // -----------------------
     window.addEventListener('load', () => {
       buildNumbers();
       setWheelDeg(0);
@@ -529,4 +514,3 @@
   </script>
 </body>
 </html>
-
