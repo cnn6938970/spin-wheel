@@ -18,7 +18,6 @@
       --ring: 16px;
       --btn: 110px;
 
-      /* 轉盤角度（同時給數字抵消用） */
       --wheel-rot: 0deg;
     }
     *{ box-sizing:border-box; }
@@ -64,6 +63,7 @@
       pointer-events:none;
     }
 
+    /* 左：轉盤 */
     .left{
       width:min(620px, 96vw);
       padding: 22px;
@@ -135,7 +135,6 @@
       background:
         radial-gradient(circle at 50% 50%, #fff 0 38%, transparent 39%),
         conic-gradient(from -90deg,
-          /* 13 等分顏色 */
           #fde68a 0 7.6923%,
           #a7f3d0 7.6923% 15.3846%,
           #bfdbfe 15.3846% 23.0769%,
@@ -167,23 +166,19 @@
       pointer-events:none;
     }
 
-    /* ✅ 數字層（放在 wheel 裡，會一起轉） */
+    /* 數字層（會跟著盤轉；文字用 rotate(-wheel-rot) 抵消） */
     .nums{
       position:absolute;
       inset:0;
       pointer-events:none;
       z-index:10;
     }
-
-    /* ✅ 這個定位方式不會位移：left/top 用座標算好後固定 */
     .num{
       position:absolute;
-      width: 48px;
-      height: 48px;
+      width: 50px;
+      height: 50px;
       display:grid;
       place-items:center;
-      left: 50%;
-      top: 50%;
       transform: translate(-50%, -50%) rotate(calc(-1 * var(--wheel-rot)));
       transform-origin: center;
       font-weight: 1000;
@@ -251,7 +246,7 @@
       color:#b91c1c;
     }
 
-    /* 右側人物去背 */
+    /* 右側：阿巴貓 */
     .right{
       width:min(380px, 96vw);
       padding: 18px;
@@ -279,53 +274,36 @@
     }
     .avatar-stage{
       width: 100%;
-      min-height: 380px;
-      border-radius: 20px;
+      min-height: 360px;
+      border-radius: 24px;
       background:
         radial-gradient(420px 280px at 30% 22%, rgba(255,77,141,.22), transparent 60%),
         radial-gradient(520px 320px at 70% 35%, rgba(59,130,246,.18), transparent 58%),
-        radial-gradient(520px 420px at 50% 85%, rgba(34,197,94,.16), transparent 60%),
-        rgba(255,255,255,.70);
+        rgba(255,255,255,.80);
       border: 1px solid rgba(15,23,42,.10);
-      box-shadow: var(--shadow2);
-      position:relative;
-      overflow:hidden;
+      box-shadow: 0 14px 30px rgba(0,0,0,.08);
       display:grid;
       place-items:center;
-      padding: 14px;
+      padding: 20px;
     }
-    #personCanvas{
-      max-width: 100%;
-      max-height: 420px;
-      display:block;
-      filter:
-        drop-shadow(0 18px 22px rgba(15,23,42,.18))
-        drop-shadow(0 6px 10px rgba(255,77,141,.18));
+    .aba-cat{
+      max-width: 92%;
+      max-height: 320px;
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0 18px 20px rgba(0,0,0,.15));
+      border-radius: 18px;
     }
-    .row{
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 10px 12px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.80);
-      border: 1px solid rgba(15,23,42,.10);
-      box-shadow: 0 10px 18px rgba(0,0,0,.06);
+    @keyframes float{
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
     }
-    .row label{
-      font-size: 13px;
-      font-weight: 900;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    input[type="range"]{ width: 62%; }
 
     @media (max-width: 520px){
       :root{ --wheel: 340px; --btn: 98px; }
-      .num{ font-size: 22px; width: 44px; height: 44px; }
-      .avatar-stage{ min-height: 320px; }
+      .num{ font-size: 22px; width: 46px; height: 46px; }
+      .avatar-stage{ min-height: 300px; }
+      .aba-cat{ max-height: 260px; }
     }
   </style>
 </head>
@@ -358,22 +336,11 @@
     </div>
 
     <div class="card right">
-      <p class="side-title">可愛貼紙人物 <span class="chip">自動去背</span></p>
-
+      <p class="side-title">阿巴貓 <span class="chip">動圖</span></p>
       <div class="avatar-stage">
-        <canvas id="personCanvas"></canvas>
+        <!-- ✅ 請把 aba-cat.gif 上傳到 repo 根目錄 -->
+        <img src="aba-cat.gif" class="aba-cat" alt="阿巴貓動圖">
       </div>
-
-      <div class="row">
-        <label for="tolerance">去背強度</label>
-        <input id="tolerance" type="range" min="10" max="80" value="35" />
-      </div>
-      <div class="row">
-        <label for="softness">邊緣柔化</label>
-        <input id="softness" type="range" min="0" max="25" value="8" />
-      </div>
-
-      <img id="personImg" src="person.png" alt="人物原圖" style="display:none" />
     </div>
   </div>
 
@@ -448,19 +415,19 @@
     }
 
     // -----------------------
-    // ✅ 不位移數字：用座標直接定位
+    // ✅ 數字不位移：sin/cos 座標定位
     // -----------------------
     function buildNumbers(){
       nums.innerHTML = "";
 
       const size = wheel.clientWidth;
-      const r = (size / 2) - 74; // 數字位置半徑：想更外/更內可以調這個
+      const r = (size / 2) - 74; // 數字距離中心半徑（可微調）
 
       for(let i=0;i<N;i++){
         const value = START + i;
 
         // 轉盤背景從 -90deg 開始，指針在上方
-        const angDeg = -90 + (i + 0.5) * step;  // 每格中心
+        const angDeg = -90 + (i + 0.5) * step;
         const angRad = angDeg * Math.PI / 180;
 
         const x = Math.cos(angRad) * r;
@@ -471,7 +438,6 @@
         el.dataset.value = String(value);
         el.textContent = String(value);
 
-        // ✅ 直接用 left/top 定位，完全不會飄
         el.style.left = `calc(50% + ${x}px)`;
         el.style.top  = `calc(50% + ${y}px)`;
 
@@ -538,6 +504,7 @@
         resultText.textContent = String(picked);
         markUsed(picked);
 
+        // 音效示範：13 中獎、1 失落（你要改也可以）
         if(picked === 13) playWin();
         if(picked === 1) playSad();
 
@@ -546,89 +513,6 @@
         if(pool.length === 0) remainText.textContent = "剩餘：0（已抽完）";
       }, 3900);
     }
-
-    // -----------------------
-    // 右側人物去背（黃色背景 -> 透明）
-    // -----------------------
-    const img = document.getElementById('personImg');
-    const canvas = document.getElementById('personCanvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const tolEl = document.getElementById('tolerance');
-    const softEl = document.getElementById('softness');
-
-    function rgbToHsv(r,g,b){
-      r/=255; g/=255; b/=255;
-      const max = Math.max(r,g,b), min = Math.min(r,g,b);
-      const d = max-min;
-      let h = 0;
-      if(d !== 0){
-        if(max === r) h = ((g-b)/d) % 6;
-        else if(max === g) h = (b-r)/d + 2;
-        else h = (r-g)/d + 4;
-        h *= 60;
-        if(h < 0) h += 360;
-      }
-      const s = max === 0 ? 0 : d/max;
-      const v = max;
-      return {h,s,v};
-    }
-    function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-
-    function applyChromaKey(){
-      if(!img.complete || !img.naturalWidth) return;
-
-      const maxW = 640;
-      const scale = Math.min(1, maxW / img.naturalWidth);
-      const w = Math.round(img.naturalWidth * scale);
-      const h = Math.round(img.naturalHeight * scale);
-
-      canvas.width = w;
-      canvas.height = h;
-
-      ctx.clearRect(0,0,w,h);
-      ctx.drawImage(img, 0, 0, w, h);
-
-      const imageData = ctx.getImageData(0,0,w,h);
-      const data = imageData.data;
-
-      const tolerance = Number(tolEl.value);
-      const softness = Number(softEl.value);
-
-      const H_MIN = 35, H_MAX = 75;
-      const center = 55;
-
-      for(let i=0; i<data.length; i+=4){
-        const r = data[i], g = data[i+1], b = data[i+2];
-        const {h,s,v} = rgbToHsv(r,g,b);
-        const isYellow = (h >= H_MIN && h <= H_MAX) && (s > 0.15) && (v > 0.35);
-
-        if(isYellow){
-          const dh = Math.abs(h - center);
-          const t = clamp(dh / (tolerance/2), 0, 1);
-          let alpha = Math.round(255 * t);
-          if(softness > 0) alpha = clamp(alpha + softness * 8, 0, 255);
-          data[i+3] = alpha;
-        }
-      }
-      ctx.putImageData(imageData, 0, 0);
-    }
-
-    img.addEventListener('load', applyChromaKey);
-    tolEl.addEventListener('input', applyChromaKey);
-    softEl.addEventListener('input', applyChromaKey);
-
-    img.addEventListener('error', () => {
-      const w = 560, h = 220;
-      canvas.width = w; canvas.height = h;
-      ctx.clearRect(0,0,w,h);
-      ctx.font = "900 18px system-ui";
-      ctx.fillStyle = "#0f172a";
-      ctx.fillText("找不到 person.png", 18, 52);
-      ctx.font = "700 14px system-ui";
-      ctx.fillStyle = "#475569";
-      ctx.fillText("請把人物照片存成 person.png", 18, 82);
-      ctx.fillText("並放在 index.html 同一個資料夾", 18, 104);
-    });
 
     // -----------------------
     // Init
