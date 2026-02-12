@@ -6,14 +6,9 @@
   <title>1-13 轉盤（不重複抽）</title>
 
   <style>
-    /* =========================
-       插畫潮風 UI（類似參考圖）
-       ========================= */
     :root{
-      --ink:#0B1020;                /* 深墨 */
-      --bg:#070A12;                 /* 黑底舞台 */
-      --stroke:#0A0C12;             /* 粗描邊 */
-      --paper:#ffffff;              /* 卡片底 */
+      --ink:#0B1020;
+      --bg:#070A12;
       --pink:#ff4db3;
 
       --shadow-sticker: 0 18px 0 rgba(10,12,18,.22), 0 34px 60px rgba(0,0,0,.40);
@@ -54,7 +49,7 @@
     }
 
     .card{
-      background: var(--paper);
+      background: #fff;
       border: 4px solid rgba(10,12,18,.95);
       box-shadow: var(--shadow-sticker);
       border-radius: 24px;
@@ -161,7 +156,8 @@
       border: var(--ring) solid rgba(10,12,18,.95);
       box-shadow: var(--shadow-soft);
       transform: rotate(var(--wheel-rot));
-      transition: transform 3.8s cubic-bezier(.12,.72,.08,1);
+      /* 轉動動畫由 JS 設定（8秒由慢到快） */
+      transition: none;
       overflow:hidden;
     }
     .wheel::after{
@@ -183,7 +179,6 @@
       z-index:10;
     }
 
-    /* 數字：用 rotate(-wheel-rot) 保持正 */
     .num{
       position:absolute;
       width: 52px;
@@ -202,7 +197,6 @@
     }
     .num.used{ opacity:.18; filter: grayscale(100%); }
 
-    /* 中間旋轉按鈕：貼紙感 */
     .spin-btn{
       position:absolute; left:50%; top:50%;
       transform: translate(-50%,-50%);
@@ -243,14 +237,21 @@
       color: var(--ink);
     }
     .result b{ font-size: 30px; }
-
     .small{
       font-size: 12px;
       color: rgba(11,16,32,.75);
       font-weight: 1000;
     }
 
-    .controls{ display:flex; justify-content:center; gap: 10px; flex-wrap:wrap; }
+    .controls{
+      width:min(520px, 92vw);
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .controls-left{ display:flex; gap:10px; flex-wrap:wrap; }
     .btn{
       padding: 10px 18px;
       border-radius: 14px;
@@ -260,13 +261,33 @@
       cursor:pointer;
       box-shadow: 0 10px 0 rgba(10,12,18,.16), 0 18px 26px rgba(0,0,0,.14);
       color: var(--ink);
-      transition: transform .12s ease, box-shadow .12s ease;
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+      user-select:none;
     }
     .btn:active{
       transform: translateY(2px) scale(.99);
       box-shadow: 0 7px 0 rgba(10,12,18,.16), 0 14px 20px rgba(0,0,0,.12);
     }
     .btn.danger{ border-color: rgba(239,68,68,.92); }
+
+    /* 音量控制（插畫風小卡） */
+    .volbox{
+      background:#fff;
+      border: 3px solid rgba(10,12,18,.95);
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 0 10px 0 rgba(10,12,18,.16), 0 18px 26px rgba(0,0,0,.14);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color: var(--ink);
+      font-weight: 1000;
+    }
+    .volbox span{ font-size: 12px; opacity:.85; }
+    .volbox input[type="range"]{
+      width: 140px;
+      accent-color: var(--pink);
+    }
 
     /* 右側：阿巴貓 */
     .right{
@@ -331,6 +352,7 @@
       .num{ font-size: 22px; width: 46px; height: 46px; }
       .avatar-stage{ min-height: 300px; }
       .aba-cat{ max-height: 260px; }
+      .volbox input[type="range"]{ width: 120px; }
     }
   </style>
 </head>
@@ -359,27 +381,48 @@
       </div>
 
       <div class="controls">
-        <button id="resetBtn" class="btn danger" type="button">重置</button>
+        <div class="controls-left">
+          <button id="resetBtn" class="btn danger" type="button">重置</button>
+
+          <button id="muteBtn" class="btn" type="button" aria-pressed="false">🔊 音效</button>
+        </div>
+
+        <div class="volbox" title="調整音效音量">
+          <span>音量</span>
+          <input id="volRange" type="range" min="0" max="100" value="60" />
+          <span id="volText">60%</span>
+        </div>
       </div>
     </div>
 
     <div class="card right">
       <p class="side-title">阿巴貓 <span class="chip">動圖</span></p>
       <div class="avatar-stage">
-        <!-- 請把 aba-cat.gif 放在 repo 根目錄（和 index.html 同一層） -->
-        <img src="aba-cat.gif" class="aba-cat" alt="北爛貓貓">
+        <img src="aba-cat.gif" class="aba-cat" alt="阿巴貓動圖">
       </div>
     </div>
   </div>
 
+  <!-- ✅ 8 秒音效：請把 spin.mp3 放在 repo 根目錄 -->
+  <audio id="spinSound" src="spin.mp3" preload="auto"></audio>
+
   <script>
     /* =========================
-       核心規則：1~13 不重複抽
+       規則：1~13 不重複抽
+       + 旋轉 8 秒（由慢到快）剛好停住
+       + 8 秒 mp3 同步播放
+       + 音量控制
        ========================= */
+
     const START = 1;
     const END = 13;
     const N = END - START + 1;
     const step = 360 / N;
+
+    const DURATION_MS = 8000; // ✅ 固定 8 秒
+    // ✅ 由慢到快（加速），最後剛好停住
+    // 這是「ease-in」類型：起步慢、越來越快
+    const EASING = "cubic-bezier(0.42, 0, 1, 1)";
 
     const wheel = document.getElementById('wheel');
     const nums = document.getElementById('nums');
@@ -388,9 +431,17 @@
     const resultText = document.getElementById('resultText');
     const remainText = document.getElementById('remainText');
 
+    const spinSound = document.getElementById('spinSound');
+
+    const volRange = document.getElementById('volRange');
+    const volText = document.getElementById('volText');
+    const muteBtn = document.getElementById('muteBtn');
+
     let pool = [];
     let currentDeg = 0;
     let spinning = false;
+
+    let isMuted = false;
 
     function setWheelDeg(deg){
       currentDeg = deg;
@@ -400,20 +451,22 @@
       return ((deg % 360) + 360) % 360;
     }
 
-    /* ✅ 數字不位移：用 sin/cos 算座標
+    function applyTransition(){
+      wheel.style.transition = `transform ${DURATION_MS}ms ${EASING}`;
+    }
+
+    /* ✅ 數字不位移：sin/cos 算座標
        ✅ 手機更靠外：size 小時 pad 更小（r 更大） */
     function buildNumbers(){
       nums.innerHTML = "";
       const size = wheel.clientWidth;
 
-      // pad 越小 -> r 越大 -> 越靠外
-      const pad = (size < 380) ? 42 : 54;
+      const pad = (size < 380) ? 40 : 52; // 你要更外就把數字再調小一點
       const r = (size / 2) - pad;
 
       for(let i=0;i<N;i++){
         const value = START + i;
 
-        // conic-gradient from -90deg，格子中心角度
         const angDeg = -90 + (i + 0.5) * step;
         const angRad = angDeg * Math.PI / 180;
 
@@ -432,6 +485,18 @@
       }
     }
 
+    function updateVolumeUI(){
+      const v = Number(volRange.value);
+      volText.textContent = `${v}%`;
+
+      const vol = isMuted ? 0 : (v / 100);
+      spinSound.volume = vol;
+
+      muteBtn.textContent = isMuted ? "🔇 靜音" : "🔊 音效";
+      muteBtn.setAttribute("aria-pressed", String(isMuted));
+      muteBtn.style.opacity = isMuted ? "0.75" : "1";
+    }
+
     function resetPool(){
       pool = [];
       for(let v=START; v<=END; v++) pool.push(v);
@@ -440,11 +505,15 @@
       resultText.textContent = "—";
       document.querySelectorAll('.num').forEach(el => el.classList.remove('used'));
 
-      // 回正且不動畫抖一下
+      // 停掉音效
+      spinSound.pause();
+      spinSound.currentTime = 0;
+
+      // 回正（不動畫）
       wheel.style.transition = "none";
       setWheelDeg(0);
       requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        wheel.style.transition = "transform 3.8s cubic-bezier(.12,.72,.08,1)";
+        applyTransition();
       }));
 
       spinBtn.disabled = false;
@@ -477,11 +546,21 @@
       spinBtn.disabled = true;
       resultText.textContent = "…";
 
+      // ✅ 點擊後開始播 8 秒 mp3（同步）
+      try{
+        spinSound.pause();
+        spinSound.currentTime = 0;
+        spinSound.play();
+      }catch(e){
+        // 若某些瀏覽器限制，至少不會讓程式掛掉
+      }
+
       const picked = pickFromPool();
       const targetIndex = picked - START;
 
-      // 多轉幾圈比較爽
-      const extraTurns = (4 + Math.floor(Math.random() * 4)) * 360;
+      // ✅ 8秒想要「快感」多轉幾圈：這裡你可調整圈數
+      // 因為你要「由慢到快」，圈數多一點會更有感
+      const extraTurns = (6 + Math.floor(Math.random() * 4)) * 360; // 6~9圈
 
       // 指針在上方，停在該格中心
       const targetCenter = targetIndex * step + step / 2;
@@ -490,8 +569,11 @@
       const curNorm = norm360(currentDeg);
       const deltaToNeeded = (neededNorm - curNorm + 360) % 360;
 
+      // ✅ 設定 8 秒加速轉動
+      applyTransition();
       setWheelDeg(currentDeg + extraTurns + deltaToNeeded);
 
+      // ✅ 8 秒到點才顯示結果（剛好停住）
       setTimeout(() => {
         resultText.textContent = String(picked);
         markUsed(picked);
@@ -499,18 +581,27 @@
         spinning = false;
         spinBtn.disabled = (pool.length === 0);
         if(pool.length === 0) remainText.textContent = "剩餘：0（已抽完）";
-      }, 3900);
+      }, DURATION_MS + 30);
     }
+
+    // UI events
+    volRange.addEventListener('input', updateVolumeUI);
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      updateVolumeUI();
+    });
+
+    spinBtn.addEventListener('click', spin);
+    resetBtn.addEventListener('click', resetPool);
 
     window.addEventListener('load', () => {
       buildNumbers();
       setWheelDeg(0);
+      applyTransition();
       resetPool();
+      updateVolumeUI();
     });
     window.addEventListener('resize', buildNumbers);
-
-    spinBtn.addEventListener('click', spin);
-    resetBtn.addEventListener('click', resetPool);
   </script>
 </body>
 </html>
